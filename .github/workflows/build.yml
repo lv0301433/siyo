@@ -5,6 +5,8 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
 
@@ -14,13 +16,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK r27b & CMake 3.28.0+
+      - name: Accept licenses & install NDK/CMake
         run: |
-          sdkmanager "ndk;27.1.12297006" "cmake;3.28.0+"
-          yes | sdkmanager --licenses
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "ndk;27.1.12297006"
+          sdkmanager "cmake;3.28.0+" || sdkmanager "cmake;3.28.0"
 
       - name: Build Release APK
         run: |
@@ -28,7 +29,6 @@ jobs:
           ./gradlew :app:assembleRelease --no-daemon
         env:
           ANDROID_NDK_HOME: $ANDROID_SDK_ROOT/ndk/27.1.12297006
-          ANDROID_NDK_VERSION: 27.1.12297006
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
